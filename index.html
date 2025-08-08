@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suspicious Element Scanner</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+        
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .scan-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .scan-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+        
+        .scan-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .results {
+            padding: 30px;
+        }
+        
+        .results h3 {
+            margin: 0 0 20px 0;
+            color: #495057;
+            font-size: 1.5rem;
+        }
+        
+        .suspicious-element {
+            background: #fff;
+            border: 2px solid #ffc107;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 10px 0;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .suspicious-element:hover {
+            border-color: #ff8c00;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .warning-icon {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .element-info {
+            margin-bottom: 10px;
+        }
+        
+        .element-tag {
+            background: #007bff;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-right: 10px;
+        }
+        
+        .suspicious-attribute {
+            background: #ffc107;
+            color: #856404;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin: 5px;
+            display: inline-block;
+        }
+        
+        .element-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #495057;
+            max-height: 100px;
+            overflow: auto;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        
+        .no-results svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        .keywords-config {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .keywords-config h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+        }
+        
+        .keyword-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+        
+        .keyword-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+        
+        .default-keywords {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+        
+        .keyword-highlight {
+            background: #dc3545;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .keywords-config ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .keywords-config li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Keyword Element Scanner</h1>
+            <p>Detect elements containing any keywords in their attributes</p>
+        </div>
+        
+        <div class="controls">
+            <div style="margin-bottom: 20px;">
+                <label for="customText" style="display: block; margin-bottom: 8px; font-weight: 500; color: #495057;">📝 Custom Text Area:</label>
+                <textarea id="customText" placeholder="Enter your custom text here..." style="width: 100%; height: 80px; padding: 12px; border: 1px solid #ced4da; border-radius: 6px; font-family: inherit; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
+            </div>
+            
+            <button class="scan-btn" onclick="scanForSuspiciousElements()" id="scanBtn">
+                🔍 Start Scan
+            </button>
+            
+            <div class="keywords-config">
+                <h4>🔑 Configuration-Based Scanner</h4>
+                <p>This scanner will detect elements based on the configuration:</p>
+                <ul>
+                    <li><strong>tag name</strong> - searches for custom tags</li>
+                    <li><strong>class</strong> attribute - searches for specific class names</li>
+                    <li><strong>id</strong> attribute - searches for specific IDs</li>
+                    <li><strong>other attributes</strong> - searches for specific attribute values</li>
+                </ul>
+                <p><strong>Skip Logic:</strong> Elements with "hirepro" in their attributes or ancestor elements will be skipped entirely.</p>
+                <div class="default-keywords" id="configDisplay">
+                    <strong>Current Configuration:</strong> 
+                    <ul>
+                        <li>Tag names: "blaze" → "Text Blaze"</li>
+                        <li>Class names: "gram" → "grammerly is present"</li>
+                        <li>IDs: "gram" → "grammerly is present"</li>
+                        <li>Attributes: "gram" → "grammerly is present"</li>
+                    </ul>
+                </div>
+            </div>
+            </div>
+            
+            <div class="status info" id="status">
+                Ready to scan. Click the button above to start detecting elements with your keywords.
+            </div>
+        </div>
+        
+        <div class="results" id="results" style="display: none;">
+            <h3>🚨 Matching Elements Found</h3>
+            <div class="stats" id="stats"></div>
+            <div id="suspiciousElements"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration for suspicious elements detection
+        var SUSPICIOUS_CONFIG = {
+            "blockSuspiciousChhromeExtension": {
+                "tag": [{"blaze": "Text Blaze"},{"grammarly":"grammarly found "}],
+                "className": [{"gram":"grammerly is present"}],
+                "id": [{"gram":"grammerly is present"}],
+                "attr": [{"gram":"grammerly is present"}]
+            }
+        };
+
+        // Global variables
+        var suspiciousElements = [];
+        var scanInProgress = false;
+
+        function updateStatus(message, type) {
+            type = type || 'info';
+            var statusEl = document.getElementById('status');
+            statusEl.innerHTML = message;
+            statusEl.className = 'status ' + type;
+        }
+
+        function generateConfigurationDisplay() {
+            var configDisplay = '<strong>Current Configuration:</strong><ul>';
+            var configKey, config, tagConfig, classConfig, idConfig, attrConfig, keyword, warning;
+            
+            for (configKey in SUSPICIOUS_CONFIG) {
+                if (SUSPICIOUS_CONFIG.hasOwnProperty(configKey)) {
+                    config = SUSPICIOUS_CONFIG[configKey];
+                    
+                    if (config.tag && config.tag.length > 0) {
+                        for (var i = 0; i < config.tag.length; i++) {
+                            tagConfig = config.tag[i];
+                            for (keyword in tagConfig) {
+                                if (tagConfig.hasOwnProperty(keyword)) {
+                                    warning = tagConfig[keyword];
+                                    configDisplay += '<li>Tag names: "' + keyword + '" → "' + warning + '"</li>';
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (config.className && config.className.length > 0) {
+                        for (var j = 0; j < config.className.length; j++) {
+                            classConfig = config.className[j];
+                            for (keyword in classConfig) {
+                                if (classConfig.hasOwnProperty(keyword)) {
+                                    warning = classConfig[keyword];
+                                    configDisplay += '<li>Class names: "' + keyword + '" → "' + warning + '"</li>';
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (config.id && config.id.length > 0) {
+                        for (var k = 0; k < config.id.length; k++) {
+                            idConfig = config.id[k];
+                            for (keyword in idConfig) {
+                                if (idConfig.hasOwnProperty(keyword)) {
+                                    warning = idConfig[keyword];
+                                    configDisplay += '<li>IDs: "' + keyword + '" → "' + warning + '"</li>';
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (config.attr && config.attr.length > 0) {
+                        for (var l = 0; l < config.attr.length; l++) {
+                            attrConfig = config.attr[l];
+                            for (keyword in attrConfig) {
+                                if (attrConfig.hasOwnProperty(keyword)) {
+                                    warning = attrConfig[keyword];
+                                    configDisplay += '<li>Attributes: "' + keyword + '" → "' + warning + '"</li>';
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            configDisplay += '</ul>';
+            return configDisplay;
+        }
+
+        function hasHireproInAncestors(element) {
+            var current = element;
+            while (current && current !== document.body) {
+                // Check if current element has "hirepro" in any attribute
+                for (var i = 0; i < current.attributes.length; i++) {
+                    var attr = current.attributes[i];
+                    if (attr.value.toLowerCase().indexOf('hirepro') !== -1) {
+                        return true;
+                    }
+                }
+                current = current.parentElement;
+            }
+            return false;
+        }
+
+        function checkElementForSuspiciousKeywords(element) {
+            var suspiciousAttributes = [];
+            var configKey, config, tagName, tagConfig, classNameConfig, idConfig, attrConfig, searchTerm, warningMessage, classes, cls, attr;
+            
+            // Iterate through all configuration entries
+            for (configKey in SUSPICIOUS_CONFIG) {
+                if (SUSPICIOUS_CONFIG.hasOwnProperty(configKey)) {
+                    config = SUSPICIOUS_CONFIG[configKey];
+                    
+                    // Check tag name for custom tags
+                    if (config.tag && Array.isArray(config.tag) && config.tag.length > 0) {
+                        tagName = element.tagName.toLowerCase();
+                        for (var i = 0; i < config.tag.length; i++) {
+                            tagConfig = config.tag[i];
+                            // Handle multiple key-value pairs in each object
+                            for (searchTerm in tagConfig) {
+                                if (tagConfig.hasOwnProperty(searchTerm)) {
+                                    warningMessage = tagConfig[searchTerm];
+                                    if (tagName.indexOf(searchTerm.toLowerCase()) !== -1) {
+                                        suspiciousAttributes.push({
+                                            type: 'tag',
+                                            name: 'tagName',
+                                            value: tagName,
+                                            keyword: searchTerm,
+                                            warning: warningMessage,
+                                            configKey: configKey
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Check class attribute
+                    if (config.className && Array.isArray(config.className) && config.className.length > 0 && element.className) {
+                        classes = element.className.split(' ');
+                        for (var j = 0; j < config.className.length; j++) {
+                            classNameConfig = config.className[j];
+                            // Handle multiple key-value pairs in each object
+                            for (searchTerm in classNameConfig) {
+                                if (classNameConfig.hasOwnProperty(searchTerm)) {
+                                    warningMessage = classNameConfig[searchTerm];
+                                    for (var k = 0; k < classes.length; k++) {
+                                        cls = classes[k];
+                                        if (cls.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1) {
+                                            suspiciousAttributes.push({
+                                                type: 'class',
+                                                name: 'class',
+                                                value: cls,
+                                                keyword: searchTerm,
+                                                warning: warningMessage,
+                                                configKey: configKey
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Check id attribute
+                    if (config.id && Array.isArray(config.id) && config.id.length > 0 && element.id) {
+                        for (var l = 0; l < config.id.length; l++) {
+                            idConfig = config.id[l];
+                            // Handle multiple key-value pairs in each object
+                            for (searchTerm in idConfig) {
+                                if (idConfig.hasOwnProperty(searchTerm)) {
+                                    warningMessage = idConfig[searchTerm];
+                                    if (element.id.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1) {
+                                        suspiciousAttributes.push({
+                                            type: 'id',
+                                            name: 'id',
+                                            value: element.id,
+                                            keyword: searchTerm,
+                                            warning: warningMessage,
+                                            configKey: configKey
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Check all other attributes
+                    if (config.attr && Array.isArray(config.attr) && config.attr.length > 0) {
+                        for (var m = 0; m < element.attributes.length; m++) {
+                            attr = element.attributes[m];
+                            if (attr.name !== 'class' && attr.name !== 'id') {
+                                for (var n = 0; n < config.attr.length; n++) {
+                                    attrConfig = config.attr[n];
+                                    // Handle multiple key-value pairs in each object
+                                    for (searchTerm in attrConfig) {
+                                        if (attrConfig.hasOwnProperty(searchTerm)) {
+                                            warningMessage = attrConfig[searchTerm];
+                                            if (attr.value.toLowerCase().indexOf(searchTerm.toLowerCase()) !== -1) {
+                                                suspiciousAttributes.push({
+                                                    type: 'attribute',
+                                                    name: attr.name,
+                                                    value: attr.value,
+                                                    keyword: searchTerm,
+                                                    warning: warningMessage,
+                                                    configKey: configKey
+                                                });
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return suspiciousAttributes;
+        }
+
+        function createWarningIcon() {
+            return '<div class="warning-icon" title="Suspicious element detected">⚠️</div>';
+        }
+
+        function createElementPreview(element) {
+            var tagName = element.tagName.toLowerCase();
+            var id = element.id ? ' id="' + element.id + '"' : '';
+            var className = element.className ? ' class="' + element.className + '"' : '';
+            var preview = '<' + tagName + id + className;
+            var keyAttrs = ['src', 'href', 'data-', 'on'];
+            var attr, key, i, j, text;
+            
+            // Add a few key attributes for preview
+            for (i = 0; i < element.attributes.length; i++) {
+                attr = element.attributes[i];
+                for (j = 0; j < keyAttrs.length; j++) {
+                    key = keyAttrs[j];
+                    if (attr.name.indexOf(key) === 0) {
+                        preview += ' ' + attr.name + '="' + attr.value + '"';
+                        if (preview.length > 100) {
+                            preview += '...';
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            preview += '>';
+            
+            if (element.textContent && element.textContent.trim()) {
+                text = element.textContent.trim().substring(0, 50);
+                preview += text + (text.length >= 50 ? '...' : '');
+            }
+            
+            preview += '</' + tagName + '>';
+            
+            return preview;
+        }
+
+        function displaySuspiciousElement(element, suspiciousAttrs) {
+            var elementDiv = document.createElement('div');
+            elementDiv.className = 'suspicious-element';
+            elementDiv.innerHTML = createWarningIcon();
+            
+            var tagName = element.tagName.toLowerCase();
+            var elementInfo = document.createElement('div');
+            elementInfo.className = 'element-info';
+            
+            var attrHtml = '';
+            for (var i = 0; i < suspiciousAttrs.length; i++) {
+                var attr = suspiciousAttrs[i];
+                if (attr.type === 'tag') {
+                    attrHtml += '<span class="suspicious-attribute" title="' + attr.warning + '">custom tag: ' + attr.value + '</span>';
+                } else {
+                    attrHtml += '<span class="suspicious-attribute" title="' + attr.warning + '">' + attr.name + '="' + attr.value + '"</span>';
+                }
+            }
+            
+            elementInfo.innerHTML = '<span class="element-tag">' + tagName + '</span>' + attrHtml;
+            
+            var preview = document.createElement('div');
+            preview.className = 'element-preview';
+            preview.textContent = createElementPreview(element);
+            
+            elementDiv.appendChild(elementInfo);
+            elementDiv.appendChild(preview);
+            
+            return elementDiv;
+        }
+
+        function updateStats() {
+            var statsContainer = document.getElementById('stats');
+            var totalElements = document.querySelectorAll('*').length;
+            var suspiciousCount = suspiciousElements.length;
+            var skipCount = document.querySelectorAll('*').length - totalElements + suspiciousElements.length;
+            
+            statsContainer.innerHTML = '<div class="stat-card"><div class="stat-number">' + suspiciousCount + '</div><div class="stat-label">Matching Elements</div></div><div class="stat-card"><div class="stat-number">' + totalElements + '</div><div class="stat-label">Total Elements Scanned</div></div><div class="stat-card"><div class="stat-number">' + skipCount + '</div><div class="stat-label">Elements Skipped (hirepro)</div></div>';
+        }
+
+        function createWarningsSummary() {
+            var uniqueWarnings = {};
+            var warning, item, attr, i, j;
+            
+            // Collect all unique warnings
+            for (i = 0; i < suspiciousElements.length; i++) {
+                item = suspiciousElements[i];
+                for (j = 0; j < item.suspiciousAttrs.length; j++) {
+                    attr = item.suspiciousAttrs[j];
+                    uniqueWarnings[attr.warning] = true;
+                }
+            }
+            
+            var summaryHTML = '<div style="background: #f8d7da; border: 2px solid #dc3545; border-radius: 8px; padding: 20px; margin-bottom: 20px; color: #721c24;">';
+            summaryHTML += '<h3 style="margin: 0 0 15px 0; color: #721c24; font-size: 1.4rem;">🚨 WARNINGS DETECTED</h3>';
+            summaryHTML += '<div style="display: grid; gap: 10px;">';
+            
+            for (warning in uniqueWarnings) {
+                if (uniqueWarnings.hasOwnProperty(warning)) {
+                    summaryHTML += '<div style="background: #dc3545; color: white; padding: 12px 16px; border-radius: 6px; font-weight: bold; font-size: 1.1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">';
+                    summaryHTML += '⚠️ ' + warning;
+                    summaryHTML += '</div>';
+                }
+            }
+            
+            summaryHTML += '</div></div>';
+            return summaryHTML;
+        }
+
+        function displayResults() {
+            var resultsContainer = document.getElementById('results');
+            var suspiciousElementsContainer = document.getElementById('suspiciousElements');
+            var warningsSummary, item, i;
+            
+            resultsContainer.style.display = 'block';
+            
+            if (suspiciousElements.length === 0) {
+                suspiciousElementsContainer.innerHTML = '<div class="no-results"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg><h3>✅ No Matching Elements Found</h3><p>No elements matching the configuration were detected on this page.</p></div>';
+            } else {
+                // Create warning summary at the top
+                warningsSummary = createWarningsSummary();
+                
+                suspiciousElementsContainer.innerHTML = warningsSummary;
+                for (i = 0; i < suspiciousElements.length; i++) {
+                    item = suspiciousElements[i];
+                    suspiciousElementsContainer.appendChild(
+                        displaySuspiciousElement(item.element, item.suspiciousAttrs)
+                    );
+                }
+            }
+            
+            updateStats();
+        }
+
+        function scanForSuspiciousElements() {
+            if (scanInProgress) return;
+            
+            scanInProgress = true;
+            var scanBtn = document.getElementById('scanBtn');
+            scanBtn.disabled = true;
+            scanBtn.textContent = '🔍 Scanning...';
+            
+            // Clear previous results
+            suspiciousElements = [];
+            document.getElementById('results').style.display = 'none';
+            
+            updateStatus('🔍 Scanning page for elements matching configuration...', 'info');
+            
+            // Get all elements in the document
+            var allElements = document.querySelectorAll('*');
+            var scannedCount = 0;
+            var skippedCount = 0;
+            var batchSize = 100;
+            var totalElements = allElements.length;
+            var batch, element, suspiciousAttrs, progress, i, j;
+            
+            // Process elements in batches to avoid blocking the UI
+            for (i = 0; i < totalElements; i += batchSize) {
+                batch = Array.prototype.slice.call(allElements, i, Math.min(i + batchSize, totalElements));
+                
+                for (j = 0; j < batch.length; j++) {
+                    element = batch[j];
+                    // Skip if element or any ancestor has "hirepro"
+                    if (hasHireproInAncestors(element)) {
+                        skippedCount++;
+                        continue;
+                    }
+                    
+                    // Check for suspicious keywords based on configuration
+                    suspiciousAttrs = checkElementForSuspiciousKeywords(element);
+                    
+                    if (suspiciousAttrs.length > 0) {
+                        suspiciousElements.push({
+                            element: element,
+                            suspiciousAttrs: suspiciousAttrs
+                        });
+                    }
+                    
+                    scannedCount++;
+                }
+                
+                // Update progress
+                progress = Math.round((scannedCount / totalElements) * 100);
+                updateStatus('🔍 Scanning... ' + progress + '% complete (' + scannedCount + '/' + totalElements + ' elements)', 'info');
+                
+                // Allow UI to update
+                setTimeout(function() {}, 0);
+            }
+            
+            // Restore button
+            scanBtn.disabled = false;
+            scanBtn.textContent = '🔍 Start Scan';
+            scanInProgress = false;
+            
+            // Display results
+            if (suspiciousElements.length > 0) {
+                updateStatus('⚠️ Found ' + suspiciousElements.length + ' matching elements!', 'warning');
+            } else {
+                updateStatus('✅ Scan complete! No matching elements found.', 'success');
+            }
+            
+            displayResults();
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', function() {
+            updateStatus('Ready to scan. Click the button above to start detecting elements based on configuration.', 'info');
+            document.getElementById('configDisplay').innerHTML = generateConfigurationDisplay();
+        });
+    </script>
+</body>
+</html> 
