@@ -458,8 +458,20 @@
                     
                     // Check class attribute
                     if (config.className && Array.isArray(config.className) && config.className.length > 0 && element.className) {
-                        classes = element.className.split(' ');
-                        for (var j = 0; j < config.className.length; j++) {
+                        // Handle different types of className (string, SVGAnimatedString, etc.)
+                        var classNameValue = '';
+                        if (typeof element.className === 'string') {
+                            classNameValue = element.className;
+                        } else if (element.className && typeof element.className.baseVal === 'string') {
+                            classNameValue = element.className.baseVal;
+                        } else if (element.className && element.className.toString) {
+                            classNameValue = element.className.toString();
+                        }
+                        
+                        if (classNameValue) {
+                            classes = classNameValue.split(' ');
+                            
+                            for (var j = 0; j < config.className.length; j++) {
                             classNameConfig = config.className[j];
                             // Handle multiple key-value pairs in each object
                             for (searchTerm in classNameConfig) {
@@ -480,6 +492,7 @@
                                     }
                                 }
                             }
+                        }
                         }
                     }
                     
@@ -546,7 +559,18 @@
         function createElementPreview(element) {
             var tagName = element.tagName.toLowerCase();
             var id = element.id ? ' id="' + element.id + '"' : '';
-            var className = element.className ? ' class="' + element.className + '"' : '';
+            
+            // Handle different types of className (string, SVGAnimatedString, etc.)
+            var classNameValue = '';
+            if (typeof element.className === 'string') {
+                classNameValue = element.className;
+            } else if (element.className && typeof element.className.baseVal === 'string') {
+                classNameValue = element.className.baseVal;
+            } else if (element.className && element.className.toString) {
+                classNameValue = element.className.toString();
+            }
+            var className = classNameValue ? ' class="' + classNameValue + '"' : '';
+            
             var preview = '<' + tagName + id + className;
             var keyAttrs = ['src', 'href', 'data-', 'on'];
             var attr, key, i, j, text;
